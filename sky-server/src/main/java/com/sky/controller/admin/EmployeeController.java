@@ -13,6 +13,7 @@ import com.sky.service.EmployeeService;
 import com.sky.utils.JwtUtil;
 import com.sky.vo.EmployeeLoginVO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -100,6 +101,30 @@ public class EmployeeController {
         return Result.success();
     }
 
+    /**
+     * 根据id查询员工信息
+     * @Param id
+     * @Return employee
+     */
+    @GetMapping("/{id}")
+    public Result<Employee> getById(@PathVariable Long id){
+        log.info("查询员工的id: {}", id);
+        Employee employee = employeeService.getById(id);
+        return Result.success(employee);
+    }
+
+    /**
+     * 修改员工信息
+     * @Param employeeDTO
+     *
+     */
+    @PutMapping()
+    public Result update(@RequestBody EmployeeDTO employeeDTO) {
+        log.info("修改员工信息: {}", employeeDTO);
+        employeeService.update(employeeDTO);
+        return Result.success();
+    }
+
 
     /**
      * 退出
@@ -110,5 +135,6 @@ public class EmployeeController {
     public Result<String> logout() {
         return Result.success();
     }
+
 
 }
