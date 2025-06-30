@@ -88,6 +88,18 @@ public class EmployeeController {
         return Result.success(page);
     }
 
+    /**
+     * 启用,禁用员工账号
+     * @Param status,id
+     *
+     */
+    @PostMapping("/status/{status}")
+    Result startOrStop(@PathVariable Integer status,Long id) {
+        log.info("启用或禁用员工:{}", id);
+        employeeService.startOrStop(id,status);
+        return Result.success();
+    }
+
 
     /**
      * 退出
