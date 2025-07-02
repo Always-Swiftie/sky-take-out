@@ -25,4 +25,10 @@ public interface DishFlavorMapper {
      *
      */
     void deleteBatchByDishIds(List<Long> dishIds);
+
+    /**
+     * 根据dish_id获取flavor信息
+     *
+     */
+    List<DishFlavor> getByDishId(Long dishId);
 }

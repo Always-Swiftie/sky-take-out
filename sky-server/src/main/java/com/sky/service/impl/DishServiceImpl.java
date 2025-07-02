@@ -106,6 +106,51 @@ public class DishServiceImpl implements DishService {
 
         dishMapper.deleteBatch(ids);
         dishFlavorMapper.deleteBatchByDishIds(ids);
+    }
 
+    /**
+     * 根据id查询菜品信息
+     * @param id
+     * @return
+     */
+    @Override
+    public DishVO getById(Long id) {
+        Dish dish = dishMapper.getById(id);
+        //还需要获取当前dish对象的flavor属性的具体信息
+        List<DishFlavor> dishFlavors = dishFlavorMapper.getByDishId(id);
+        //参数绑定
+        DishVO dishVO = new DishVO();
+        BeanUtils.copyProperties(dish,dishVO);
+        dishVO.setFlavors(dishFlavors);
+        return dishVO;
+    }
+
+    /**
+     * 修改菜品信息
+     */
+    @Override
+    @Transactional
+    public void updateWithFlavor(DishDTO dishDTO) {
+        Dish dish = new Dish();
+        BeanUtils.copyProperties(dishDTO,dish);
+        dishMapper.update(dish);
+        //修改菜品口味相关信息
+        //删掉原来的,重新插入新的
+        dishFlavorMapper.deleteByDishId(dish.getId());
+        List<DishFlavor>  dishFlavors = dishFlavorMapper.getByDishId(dish.getId());
+        if(dishFlavors != null && !dishFlavors.isEmpty()){
+            for(DishFlavor flavor : dishFlavors){
+                flavor.setDishId(dish.getId());
+            }
+            dishFlavorMapper.insertBatch(dishFlavors);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void setDishStatus(Long id, Integer status) {
+        Dish dish = dishMapper.getById(id);
+        dish.setStatus(status);
+        dishMapper.update(dish);
     }
 }
