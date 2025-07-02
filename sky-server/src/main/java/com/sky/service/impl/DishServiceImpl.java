@@ -3,6 +3,7 @@ package com.sky.service.impl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
+import com.sky.constant.StatusConstant;
 import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
 @Service
@@ -89,7 +91,8 @@ public class DishServiceImpl implements DishService {
         //step1.检查是否有与菜品正在起售
         for(Long id : ids){
             Dish dish = dishMapper.getById(id);
-            if(dish == null && dish.getStatus() == 1){
+            Integer status = dish.getStatus();
+            if(dish != null && Objects.equals(dish.getStatus(), StatusConstant.ENABLE)){
                 throw new DeletionNotAllowedException(MessageConstant.DISH_ON_SALE);
             }
         }
@@ -100,10 +103,9 @@ public class DishServiceImpl implements DishService {
             throw new DeletionNotAllowedException(MessageConstant.DISH_BE_RELATED_BY_SETMEAL);
         }
         //step3.正常删除先删除菜品，再删除口味
-        for(Long id : ids){
-            dishMapper.deleteById(id);
-            dishFlavorMapper.deleteByDishId(id);
-        }
+
+        dishMapper.deleteBatch(ids);
+        dishFlavorMapper.deleteBatchByDishIds(ids);
 
     }
 }
