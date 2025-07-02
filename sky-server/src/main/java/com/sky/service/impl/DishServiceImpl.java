@@ -153,4 +153,15 @@ public class DishServiceImpl implements DishService {
         dish.setStatus(status);
         dishMapper.update(dish);
     }
+
+    /**
+     * 根据分类id查询所属分类下的所有菜品
+     * @param categoryId
+     * @return
+     */
+    @Override
+    public List<DishVO> getByCategoryId(Long categoryId) {
+        List<DishVO> dishVOList = dishMapper.getByCategoryId(categoryId);
+        return dishVOList;
+    }
 }
