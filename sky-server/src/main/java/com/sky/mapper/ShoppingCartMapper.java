@@ -40,5 +40,6 @@ public interface ShoppingCartMapper {
      * 删除单一商品
      * @param shoppingCart
      */
+    @Delete("delete from shopping_cart where id = #{id}")
     void delete(ShoppingCart shoppingCart);
 }

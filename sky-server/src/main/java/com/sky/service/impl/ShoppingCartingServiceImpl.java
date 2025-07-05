@@ -105,6 +105,20 @@ public class ShoppingCartingServiceImpl implements ShoppingCartService {
         //如果删除的是一个菜品，那么setmeal不为null
         //在mapper中的删除逻辑，首先根据user_id唯一确定用户的购物车记录，然后根据dish_id or setmeal_id ,dish_flavor唯一确定一条待删除的记录
         shoppingCart.setUserId(BaseContext.getCurrentId());
-        shoppingCartMapper.delete(shoppingCart);
+        //先获取当前用户的所有购物车数据
+        List<ShoppingCart> shoppingCartList = shoppingCartMapper.list(shoppingCart);
+        if(shoppingCartList != null && !shoppingCartList.isEmpty()){
+            shoppingCart = shoppingCartList.get(0);
+            Integer number = shoppingCart.getNumber();
+            if(number == 1){
+                //如果当前Number为1，则要直接从shopping_cart表中删除这条数据
+                shoppingCartMapper.delete(shoppingCart);
+            }else{
+                //否则number >= 2,简单的修改number即可
+                shoppingCart.setNumber(number - 1);
+                shoppingCartMapper.updateNumberById(shoppingCart);
+            }
+        }
+
     }
 }
