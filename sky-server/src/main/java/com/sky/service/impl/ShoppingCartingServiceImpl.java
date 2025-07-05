@@ -84,4 +84,27 @@ public class ShoppingCartingServiceImpl implements ShoppingCartService {
         List<ShoppingCart> shoppingCartList = shoppingCartMapper.list(shoppingCart);
         return shoppingCartList;
     }
+
+    /**
+     * 清空当前购物车
+     */
+    @Override
+    public void cleanShoppingCart() {
+        shoppingCartMapper.deleteByUserId(BaseContext.getCurrentId());
+    }
+
+    /**
+     * 删除购物车中一个菜品
+     * @param shoppingCartDTO
+     */
+    @Override
+    public void sub(ShoppingCartDTO shoppingCartDTO) {
+        //根据DTO对象转换为一个ShoppingCart对象
+        ShoppingCart shoppingCart = new ShoppingCart();
+        BeanUtils.copyProperties(shoppingCartDTO, shoppingCart);
+        //如果删除的是一个菜品，那么setmeal不为null
+        //在mapper中的删除逻辑，首先根据user_id唯一确定用户的购物车记录，然后根据dish_id or setmeal_id ,dish_flavor唯一确定一条待删除的记录
+        shoppingCart.setUserId(BaseContext.getCurrentId());
+        shoppingCartMapper.delete(shoppingCart);
+    }
 }
