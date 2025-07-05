@@ -49,7 +49,6 @@ public class UserController {
                 .openid(user.getOpenid())
                 .id(user.getId())
                 .build();
-
         return Result.success(userLoginVO);
     }
 

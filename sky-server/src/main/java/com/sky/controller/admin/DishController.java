@@ -9,9 +9,11 @@ import com.sky.service.DishService;
 import com.sky.vo.DishVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/admin/dish")
@@ -20,8 +22,8 @@ public class DishController {
 
     @Autowired
     private DishService dishService;
-
-
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 新增菜品
@@ -32,6 +34,11 @@ public class DishController {
     public Result save(@RequestBody DishDTO dishDTO){
         log.info("新增菜品:{}",dishDTO);
         dishService.saveWithFlavor(dishDTO);
+        //精确清理缓存
+        Long categoryId = dishDTO.getCategoryId();
+        log.info("精确清理菜品缓存:{}",categoryId);
+        String key = "dish_" + categoryId;
+        cleanCache(key);
         return Result.success();
     }
 
@@ -54,6 +61,9 @@ public class DishController {
         //获取到请求路径中的ids参数
         log.info("批量删除菜品:{}",ids);
         dishService.deleteBatch(ids);
+        //清理缓存
+        log.info("批量清理菜品缓存");
+        cleanCache("dish_*");
         return Result.success();
     }
 
@@ -75,6 +85,9 @@ public class DishController {
     public Result update(@RequestBody DishDTO dishDTO){
         log.info("修改菜品信息:{}",dishDTO);
         dishService.updateWithFlavor(dishDTO);
+        //清理缓存
+        log.info("批量清理菜品缓存");
+        cleanCache("dish_*");
         return Result.success();
     }
 
@@ -86,6 +99,9 @@ public class DishController {
     public Result setDishStatus(@PathVariable Integer status,Long id){
         log.info("修改菜品售卖状态:{}",id);
         dishService.setDishStatus(id,status);
+        //清理缓存
+        log.info("批量清理菜品缓存");
+        cleanCache("dish_*");
         return Result.success();
     }
 
@@ -97,6 +113,15 @@ public class DishController {
         log.info("根据分类id查询菜品列表:{}",categoryId);
         List<DishVO> dishes = dishService.getByCategoryId(categoryId);
         return Result.success(dishes);
+    }
+
+    /**
+     * 清理redis缓存
+     * @param pattern
+     */
+    private void cleanCache(String pattern){
+        Set<String> keys = redisTemplate.keys(pattern);//先批量获取需要删除的key
+        redisTemplate.delete(keys);
     }
 
 
