@@ -36,6 +36,7 @@ public class UserController {
      */
     @PostMapping("/login")
     public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO){
+        System.out.println("=========== 收到小程序登录请求 ===========");
         log.info("微信用户登录:{}",userLoginDTO);
 
         User user = userService.wxLogin(userLoginDTO);

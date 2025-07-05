@@ -45,8 +45,8 @@ public class WebMvcConfiguration implements WebMvcConfigurer { // <--- 关键变
                 .addPathPatterns("/admin/**")
                 .excludePathPatterns("/admin/employee/login");
         registry.addInterceptor(jwtTokenUserInterceptor)
-                .addPathPatterns("/user/**") // 注意: 您的原代码这里可能是笔误，应为 addPathPatterns
-                .excludePathPatterns("/user/login")
+                .addPathPatterns("/user/**")
+                .excludePathPatterns("/user/user/login")
                 .excludePathPatterns("/user/shop/status");
     }
 
