@@ -1,18 +1,26 @@
 package com.sky.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
+import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrderHistoryDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.ShoppingCartDTO;
 import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.*;
+import com.sky.result.PageResult;
 import com.sky.service.OrderService;
+import com.sky.service.ShoppingCartService;
 import com.sky.service.UserService;
 import com.sky.utils.WeChatPayUtil;
+import com.sky.vo.OrderInfoVO;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
 import org.springframework.beans.BeanUtils;
@@ -26,6 +34,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.sky.entity.Orders.CANCELLED;
+
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -37,6 +47,8 @@ public class OrderServiceImpl implements OrderService {
     private ShoppingCartMapper shoppingCartMapper;
     @Autowired
     private AddressBookMapper addressBookMapper;
+    @Autowired
+    private ShoppingCartService shoppingCartService;
 
 
     /**
@@ -153,4 +165,81 @@ public class OrderServiceImpl implements OrderService {
         orderMapper.update(orders);
     }
 
+    /**
+     * 根据订单id查询订单详情
+     * @param id
+     * @return
+     */
+    @Override
+    public OrderInfoVO getById(Long id) {
+        //先查询到Order对象,给VO对象属性赋值,再查询OrderDetail对象,得到列表
+        Orders order = orderMapper.getById(id);
+        OrderInfoVO orderInfoVO = new OrderInfoVO();
+        BeanUtils.copyProperties(order, orderInfoVO);
+        //再通过orderDetailMapper查询到所有的详情信息集合
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+        orderInfoVO.setOrderDetailList(orderDetailList);
+        //还需要通过addressBookId获取到地址信息，再赋值给VO对象
+        AddressBook addressBook = addressBookMapper.getById(order.getAddressBookId());
+        String address = addressBook.getProvinceName() + addressBook.getCityName() + addressBook.getDistrictName() + addressBook.getDetail();
+        orderInfoVO.setAddress(address);
+        //赋值完成
+        return orderInfoVO;
+    }
+
+    /**
+     * 查询当前用户的历史订单信息
+     * @param orderHistoryDTO
+     * @return
+     */
+    @Override
+    public PageResult getHistoryOrders(OrderHistoryDTO orderHistoryDTO) {
+        PageHelper.startPage(orderHistoryDTO.getPage(), orderHistoryDTO.getPageSize());
+        //给DTO的userId属性赋值
+        Long userId = BaseContext.getCurrentId();
+        orderHistoryDTO.setUserId(userId);
+        //调用mapper执行分页查询,查询到所有的orders,ordersDetail集合
+        Page<OrderInfoVO> page = orderMapper.PageQuery(orderHistoryDTO);//还有orderDetail信息没获取
+        for(OrderInfoVO orderInfoVO : page.getResult()) {
+            //对于每个orderInfoVO对象，获取它的orderDetail信息
+            List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(orderInfoVO.getId());
+            orderInfoVO.setOrderDetailList(orderDetailList);
+            //还需要通过addressBookId获取到地址信息，再赋值给VO对象
+            AddressBook addressBook = addressBookMapper.getById(orderInfoVO.getAddressBookId());
+            String address = addressBook.getProvinceName() + addressBook.getCityName() + addressBook.getDistrictName() + addressBook.getDetail();
+            orderInfoVO.setAddress(address);
+        }
+        long total = page.getTotal();
+        return new PageResult(total,page);
+    }
+
+    /**
+     * 取消订单
+     * @param id
+     */
+    @Override
+    public void cancel(Long id) {
+        //简单的修改当前订单状态为6-已取消即可
+        Orders order = orderMapper.getById(id);
+        order.setStatus(CANCELLED);
+        orderMapper.update(order);
+    }
+
+    /**
+     * 再来一单
+     * @param id
+     */
+    @Override
+    public void repetition(Long id) {
+        //再来一单的逻辑是,通过订单id查询到订单的详情信息,重新加入到购物车中(也就是重新填充购物车)
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+        for(OrderDetail orderDetail : orderDetailList) {
+            ShoppingCartDTO shoppingCartDTO = new ShoppingCartDTO();
+            shoppingCartDTO.setSetmealId(orderDetail.getSetmealId());
+            shoppingCartDTO.setDishId(orderDetail.getDishId());
+            shoppingCartDTO.setDishFlavor(orderDetail.getDishFlavor());
+            shoppingCartService.addShoppingCart(shoppingCartDTO);
+        }
+
+    }
 }
