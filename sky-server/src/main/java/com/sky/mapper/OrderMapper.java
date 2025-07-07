@@ -3,8 +3,11 @@ package com.sky.mapper;
 
 import com.github.pagehelper.Page;
 import com.sky.dto.OrderHistoryDTO;
+import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.entity.Orders;
 import com.sky.vo.OrderInfoVO;
+import com.sky.vo.OrderQueryVO;
+import com.sky.vo.OrderStatisticsVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
@@ -39,4 +42,18 @@ public interface OrderMapper {
     Orders getById(Long id);
 
     Page<OrderInfoVO> PageQuery(OrderHistoryDTO orderHistoryDTO);
+
+    /**
+     * 商家端订单条件分页查询
+     * @param ordersPageQueryDTO
+     * @return
+     * OrderVO是Order的子类
+     */
+    Page<OrderQueryVO> orderPageQuery(OrdersPageQueryDTO ordersPageQueryDTO);
+
+    /**
+     * 获取各个状态订单的数量统计
+     * @return
+     */
+    OrderStatisticsVO getStatistics();
 }

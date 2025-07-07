@@ -67,4 +67,7 @@ sky:
     notifyUrl: ${sky.wechat.notifyUrl}
     refundNotifyUrl: ${sky.wechat.refundNotifyUrl}
 
+  shop:
+    address: 北京市海淀区上园村3号院北京交通大学
+
 

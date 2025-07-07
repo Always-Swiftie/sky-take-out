@@ -4,12 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
-import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrderHistoryDTO;
-import com.sky.dto.OrdersPaymentDTO;
-import com.sky.dto.OrdersSubmitDTO;
-import com.sky.dto.ShoppingCartDTO;
+import com.sky.dto.*;
 import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
@@ -18,23 +14,18 @@ import com.sky.mapper.*;
 import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.service.ShoppingCartService;
-import com.sky.service.UserService;
 import com.sky.utils.WeChatPayUtil;
-import com.sky.vo.OrderInfoVO;
-import com.sky.vo.OrderPaymentVO;
-import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.*;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.sky.entity.Orders.CANCELLED;
+import static com.sky.entity.Orders.*;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -240,6 +231,99 @@ public class OrderServiceImpl implements OrderService {
             shoppingCartDTO.setDishFlavor(orderDetail.getDishFlavor());
             shoppingCartService.addShoppingCart(shoppingCartDTO);
         }
+    }
 
+    /**
+     * 商家端订单条件分页查询
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    @Override
+    public PageResult pageQuery(OrdersPageQueryDTO ordersPageQueryDTO) {
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+        //获取到Order类有的属性,只需要再为每个OrderQueryVO的Dishes属性赋值即可
+        Page<OrderQueryVO> page = orderMapper.orderPageQuery(ordersPageQueryDTO);
+        page.forEach(orderQueryVO -> {
+            //要根据每张订单的订单id,获取到所有的orderDetail对象，把他们的name属性拿出来拼接
+            List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(orderQueryVO.getId());
+            StringBuilder dishes = new StringBuilder();
+            for(OrderDetail orderDetail : orderDetailList) {
+                dishes.append(orderDetail.getName()).append(",");
+            }
+            //菜品信息组装完成
+            orderQueryVO.setOrderDishes(dishes.toString());
+            //除了菜品的信息,现在address属性也没有赋值(只有addressBook属性),根据addressBookID去查询地址信息
+            AddressBook addressBook = addressBookMapper.getById(orderQueryVO.getAddressBookId());
+            orderQueryVO.setAddress(addressBook.getProvinceName() + addressBook.getCityName() + addressBook.getDetail());
+        });
+        long total = page.getTotal();
+        return new PageResult(total,page);
+    }
+
+    /**
+     * 商家接单
+     * @param id
+     */
+    @Override
+    public void confirm(Long id) {
+        Orders order = orderMapper.getById(id);
+        order.setStatus(CONFIRMED);
+        orderMapper.update(order);
+    }
+
+    /**
+     * 商家拒单
+     * @param ordersRejectionDTO
+     */
+    @Override
+    public void reject(OrdersRejectionDTO ordersRejectionDTO) {
+        Orders order = orderMapper.getById(ordersRejectionDTO.getId());
+        order.setStatus(CANCELLED);
+        order.setRejectionReason(ordersRejectionDTO.getRejectionReason());
+        orderMapper.update(order);
+    }
+
+    /**
+     * 商家取消订单
+     * @param ordersCancelDTO
+     */
+    @Override
+    public void cancelOrders(OrdersCancelDTO ordersCancelDTO) {
+        Orders order = orderMapper.getById(ordersCancelDTO.getId());
+        order.setStatus(CANCELLED);
+        order.setCancelReason(ordersCancelDTO.getCancelReason());
+        orderMapper.update(order);
+    }
+
+    /**
+     * 商家派送订单
+     * @param id
+     */
+    @Override
+    public void delivery(Long id) {
+        Orders order = orderMapper.getById(id);
+        order.setStatus(DELIVERY_IN_PROGRESS);
+        orderMapper.update(order);
+    }
+
+    /**
+     * 商家完成订单
+     * @param id
+     */
+    @Override
+    public void complete(Long id) {
+        Orders order = orderMapper.getById(id);
+        order.setStatus(COMPLETED);
+        orderMapper.update(order);
+    }
+
+    /**
+     * 各个状态的订单数量统计
+     * @return
+     */
+    @Override
+    public OrderStatisticsVO getOrderStatistics() {
+        OrderStatisticsVO orderStatisticsVO = orderMapper.getStatistics();
+        return orderStatisticsVO;
     }
 }

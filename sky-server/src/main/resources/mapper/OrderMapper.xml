@@ -43,10 +43,37 @@
         where id = #{id}
     </update>
 
-
     <select id="PageQuery" resultType="com.sky.vo.OrderInfoVO">
         select * from orders where user_id = #{userId}
         order by orders.order_time desc
+    </select>
+
+    <select id="orderPageQuery" resultType="com.sky.vo.OrderQueryVO" parameterType="com.sky.dto.OrdersPageQueryDTO">
+        select * from sky_take_out.orders
+        <where>
+            <if test="beginTime != null">
+                and order_time >= #{beginTime}
+            </if>
+
+
+            <if test="number != null">
+                and number = #{number}
+            </if>
+            <if test="phone != null">
+                and phone = #{phone}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by order_time desc
+    </select>
+
+    <select id="getStatistics" resultType="com.sky.vo.OrderStatisticsVO">
+        select count(case when status = 3 then 1 end) as confirmed,
+               count(case when status = 4 then 1 end ) as deliveryInProgress,
+               count(case when status = 2 then 1 end) as toBeConfirmed
+        from orders
     </select>
 
 </mapper>
