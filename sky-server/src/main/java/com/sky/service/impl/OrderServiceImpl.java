@@ -16,6 +16,7 @@ import com.sky.service.OrderService;
 import com.sky.service.ShoppingCartService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.*;
+import com.sky.websocket.WebSocketServer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.sky.entity.Orders.*;
 
@@ -40,6 +43,8 @@ public class OrderServiceImpl implements OrderService {
     private AddressBookMapper addressBookMapper;
     @Autowired
     private ShoppingCartService shoppingCartService;
+    @Autowired
+    private WebSocketServer  webSocketServer;
 
 
     /**
@@ -154,6 +159,13 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderMapper.update(orders);
+        //向商家端推送来单消息
+        Map map = new HashMap();
+        map.put("type",1);//消息类型,1-来单提醒
+        map.put("orderId",ordersDB.getId());//订单id
+        map.put("content","订单号:"+outTradeNo);
+        //调用webSocketServer
+        webSocketServer.sendToAllClient(JSONObject.toJSONString(map));
     }
 
     /**
@@ -248,8 +260,9 @@ public class OrderServiceImpl implements OrderService {
             List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(orderQueryVO.getId());
             StringBuilder dishes = new StringBuilder();
             for(OrderDetail orderDetail : orderDetailList) {
-                dishes.append(orderDetail.getName()).append(",");
+                dishes.append(orderDetail.getName()).append("*").append(orderDetail.getNumber()).append(",");
             }
+            dishes.deleteCharAt(dishes.length() - 1);
             //菜品信息组装完成
             orderQueryVO.setOrderDishes(dishes.toString());
             //除了菜品的信息,现在address属性也没有赋值(只有addressBook属性),根据addressBookID去查询地址信息
