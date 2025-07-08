@@ -339,4 +339,22 @@ public class OrderServiceImpl implements OrderService {
         OrderStatisticsVO orderStatisticsVO = orderMapper.getStatistics();
         return orderStatisticsVO;
     }
+
+    /**
+     * 用户催单
+     * @param id
+     */
+    @Override
+    public void reminder(Long id) {
+        //根据id查到订单
+        Orders order = orderMapper.getById(id);
+        if(order == null){
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        Map map = new HashMap();
+        map.put("type",2);
+        map.put("orderId",order.getId());
+        map.put("content","订单号:" + order.getNumber());
+        webSocketServer.sendToAllClient(JSONObject.toJSONString(map));
+    }
 }
