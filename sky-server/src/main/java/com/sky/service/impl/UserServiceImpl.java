@@ -10,13 +10,19 @@ import com.sky.mapper.UserMapper;
 import com.sky.properties.WeChatProperties;
 import com.sky.service.UserService;
 import com.sky.utils.HttpClientUtil;
+import com.sky.vo.UserReportVO;
 import io.swagger.util.Json;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -66,5 +72,53 @@ public class UserServiceImpl implements UserService {
         String json = HttpClientUtil.doGet(WX_LOGIN,requestParam);
         JSONObject jsonObject = JSON.parseObject(json);
         return jsonObject.getString("openid");
+    }
+
+    /**
+     * 用户统计
+     * @param begin
+     * @param end
+     * @return
+     */
+    @Override
+    public UserReportVO getUserStatistics(LocalDate begin, LocalDate end) {
+        List<LocalDate> dateList = new ArrayList<>();
+        dateList.add(begin);
+        while(!begin.equals(end)){
+            begin = begin.plusDays(1);
+            dateList.add(begin);
+        }
+        //新增用户数
+        List<Integer> newUserList = new ArrayList<>();
+        //总用户数
+        List<Integer> totalUserList = new ArrayList<>();
+
+        for(LocalDate date:dateList){
+            LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
+            LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
+            Integer newUser = getUserCount(beginTime,endTime);
+            Integer totalUser = getUserCount(null,endTime);
+            newUserList.add(newUser);
+            totalUserList.add(totalUser);
+        }
+        UserReportVO userReportVO = UserReportVO.builder()
+                .dateList(StringUtils.join(dateList,","))
+                .newUserList(StringUtils.join(newUserList,","))
+                .totalUserList(StringUtils.join(totalUserList,","))
+                .build();
+        return userReportVO;
+    }
+
+    /**
+     * 根据时间区间统计用户数量
+     * @param beginTime
+     * @param endTime
+     * @return
+     */
+    private Integer getUserCount(LocalDateTime beginTime, LocalDateTime endTime) {
+        Map map = new HashMap<>();
+        map.put("begin",beginTime);
+        map.put("end",endTime);
+        return userMapper.countByMap(map);
     }
 }
